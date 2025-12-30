@@ -13,7 +13,7 @@ app.use(cors());
 app.use(express.json());
 
 // Static folder for uploaded images
-app.use("/api/uploads", express.static("uploads"));
+app.use("/uploads", express.static("uploads"));
 
 // 🔥 CENTRAL ROUTES
 app.use("/api", require("./routes"));
