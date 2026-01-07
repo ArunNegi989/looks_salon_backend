@@ -10,7 +10,8 @@ const galleryRoutes = require("./galleryRoutes");
 const looksGalleryRoutes = require("./looksgalleryRoutes");
 const galleryBannerRoutes = require("./galleryBannerRoutes");
 const courseRoutes = require("./courseRoutes");
-const coursesGalleryBannerRoutes = require("./coursesGalleryBanner.routes"); // ✅ ADD THIS
+const coursesGalleryBannerRoutes = require("./coursesGalleryBanner.routes");
+const brandRoutes = require("./brandRoutes"); 
 
 router.use("/auth", authRoutes);
 router.use("/blogs", blogRoutes);
@@ -21,8 +22,7 @@ router.use("/gallery", galleryRoutes);
 router.use("/looksgallery", looksGalleryRoutes);
 router.use("/gallery-banner", galleryBannerRoutes);
 router.use("/courses", courseRoutes);
-router.use(
-  "/courses-gallery-banner",
-  coursesGalleryBannerRoutes
-); 
+router.use("/courses-gallery-banner", coursesGalleryBannerRoutes);
+router.use("/brands", brandRoutes); 
+
 module.exports = router;
