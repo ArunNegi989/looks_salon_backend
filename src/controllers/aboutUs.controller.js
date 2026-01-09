@@ -1,7 +1,6 @@
 const AboutUs = require("../models/AboutUs.model");
 
 /* ================= CREATE ================= */
-
 exports.createAboutUs = async (req, res) => {
   try {
     const {
@@ -28,19 +27,15 @@ exports.createAboutUs = async (req, res) => {
 
       numbers: { graduates, trainers, years, rate },
 
-      ourStory: { description },
+      "ourStory.description": description,
 
-      mission: {
-        title: missiontitle,
-        description: missiondescription,
-        tags: missiontags ? JSON.parse(missiontags) : [],
-      },
+      "mission.title": missiontitle,
+      "mission.description": missiondescription,
+      "mission.tags": missiontags ? JSON.parse(missiontags) : [],
 
-      vision: {
-        title: visiontitle,
-        description: visiondescription,
-        tags: visiontags ? JSON.parse(visiontags) : [],
-      },
+      "vision.title": visiontitle,
+      "vision.description": visiondescription,
+      "vision.tags": visiontags ? JSON.parse(visiontags) : [],
     };
 
     /* ===== Images ===== */
@@ -49,8 +44,7 @@ exports.createAboutUs = async (req, res) => {
     }
 
     if (req.files?.image?.length) {
-      payload["ourStory.images"] =
-        req.files.image.map((f) => f.path);
+      payload["ourStory.images"] = req.files.image.map((f) => f.path);
     }
 
     if (req.files?.missionImage?.[0]) {
@@ -61,7 +55,7 @@ exports.createAboutUs = async (req, res) => {
       payload["vision.image"] = req.files.visionImage[0].path;
     }
 
-    /* ===== UPDATE CASE ===== */
+    /* ===== UPDATE IF EXISTS ===== */
     if (existingAboutUs) {
       const updated = await AboutUs.findByIdAndUpdate(
         existingAboutUs._id,
@@ -71,14 +65,13 @@ exports.createAboutUs = async (req, res) => {
 
       return res.status(200).json({
         success: true,
-        alreadyExists: true, // 🔑 IMPORTANT FLAG
-        message:
-          "About Us already exists. You can only edit/update the existing content.",
+        alreadyExists: true,
+        message: "About Us updated successfully",
         data: updated,
       });
     }
 
-    /* ===== CREATE CASE ===== */
+    /* ===== CREATE ===== */
     const aboutUs = new AboutUs(payload);
     await aboutUs.save();
 
@@ -89,13 +82,9 @@ exports.createAboutUs = async (req, res) => {
       data: aboutUs,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 /* ================= READ ALL ================= */
 exports.getAllAboutUs = async (req, res) => {
@@ -142,26 +131,17 @@ exports.updateAboutUs = async (req, res) => {
       title,
       shortPara,
 
-      numbers: {
-        graduates,
-        trainers,
-        years,
-        rate,
-      },
+      numbers: { graduates, trainers, years, rate },
 
       "ourStory.description": description,
 
-      mission: {
-        title: missiontitle,
-        description: missiondescription,
-        tags: missiontags ? JSON.parse(missiontags) : [],
-      },
+      "mission.title": missiontitle,
+      "mission.description": missiondescription,
+      "mission.tags": missiontags ? JSON.parse(missiontags) : [],
 
-      vision: {
-        title: visiontitle,
-        description: visiondescription,
-        tags: visiontags ? JSON.parse(visiontags) : [],
-      },
+      "vision.title": visiontitle,
+      "vision.description": visiondescription,
+      "vision.tags": visiontags ? JSON.parse(visiontags) : [],
     };
 
     if (req.files?.mainImage?.[0]) {
@@ -169,18 +149,15 @@ exports.updateAboutUs = async (req, res) => {
     }
 
     if (req.files?.image?.length) {
-      updatePayload["ourStory.images"] =
-        req.files.image.map((file) => file.path);
+      updatePayload["ourStory.images"] = req.files.image.map((f) => f.path);
     }
 
     if (req.files?.missionImage?.[0]) {
-      updatePayload["mission.image"] =
-        req.files.missionImage[0].path;
+      updatePayload["mission.image"] = req.files.missionImage[0].path;
     }
 
     if (req.files?.visionImage?.[0]) {
-      updatePayload["vision.image"] =
-        req.files.visionImage[0].path;
+      updatePayload["vision.image"] = req.files.visionImage[0].path;
     }
 
     const updatedData = await AboutUs.findByIdAndUpdate(
@@ -195,13 +172,9 @@ exports.updateAboutUs = async (req, res) => {
       data: updatedData,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 /* ================= DELETE ================= */
 exports.deleteAboutUs = async (req, res) => {
