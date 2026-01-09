@@ -17,6 +17,8 @@ const faqRoutes = require("./faq.routes");
 const ourValuesRoutes = require("./ourValues.routes");
 const ourFacilitiesRoutes = require("./ourFacilities.routes");
 const aboutBannerRoutes = require("./aboutBanner.routes");
+const blogBannerRoutes = require("./blogBanner.routes");
+
 
 
 router.use("/auth", authRoutes);
@@ -35,5 +37,7 @@ router.use("/faqs", faqRoutes);
 router.use("/our-values", ourValuesRoutes);
 router.use("/our-facilities", ourFacilitiesRoutes);
 router.use("/about-banner", aboutBannerRoutes);
+router.use("/blog-banner", blogBannerRoutes);
+
 
 module.exports = router;
