@@ -12,15 +12,30 @@ exports.createBanner = async (req, res) => {
       });
     }
 
-    // Remove old banner (only one allowed)
+    // ✅ Save only relative URL in DB
+    const newImagePath = `/uploads/${req.file.filename}`;
+
+    // ✅ Check existing banner (only one allowed)
     const existing = await ContactBanner.findOne();
+
     if (existing) {
-      fs.unlinkSync(existing.image);
+      // ✅ Remove old file safely
+      if (existing.image) {
+        const oldFilename = path.basename(existing.image); // gets only filename
+        const oldFilePath = path.join(__dirname, "../../uploads", oldFilename);
+
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      }
+
+      // ✅ Remove old banner document
       await ContactBanner.deleteMany();
     }
 
+    // ✅ Create new banner
     const banner = await ContactBanner.create({
-      image: req.file.path,
+      image: newImagePath,
     });
 
     res.status(201).json({
