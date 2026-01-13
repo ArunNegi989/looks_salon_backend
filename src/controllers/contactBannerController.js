@@ -79,6 +79,18 @@ exports.deleteBanner = async (req, res) => {
         message: "Banner not found",
       });
     }
+    
+      if (banner.image) {
+        const oldFilename = path.basename(banner.image); // gets only filename
+        const oldFilePath = path.join(__dirname, "../../uploads", oldFilename);
+
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      }
+
+     
+    
 
     fs.unlinkSync(banner.image);
     await banner.deleteOne();

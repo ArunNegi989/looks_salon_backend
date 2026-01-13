@@ -19,65 +19,46 @@ exports.createAboutUs = async (req, res) => {
       visiontags,
     } = req.body;
 
-    const existingAboutUs = await AboutUs.findOne();
-
     const payload = {
       title,
       shortPara,
-
       numbers: { graduates, trainers, years, rate },
-
-      "ourStory.description": description,
-
-      "mission.title": missiontitle,
-      "mission.description": missiondescription,
-      "mission.tags": missiontags ? JSON.parse(missiontags) : [],
-
-      "vision.title": visiontitle,
-      "vision.description": visiondescription,
-      "vision.tags": visiontags ? JSON.parse(visiontags) : [],
+      ourStory: { description },
+      mission: {
+        title: missiontitle,
+        description: missiondescription,
+        tags: missiontags ? JSON.parse(missiontags) : [],
+      },
+      vision: {
+        title: visiontitle,
+        description: visiondescription,
+        tags: visiontags ? JSON.parse(visiontags) : [],
+      },
     };
 
-    /* ===== Images ===== */
+    /* ===== IMAGES (CONTACT BANNER STYLE) ===== */
     if (req.files?.mainImage?.[0]) {
-      payload.mainImage = req.files.mainImage[0].path;
+      payload.mainImage = `/uploads/${req.files.mainImage[0].filename}`;
     }
 
     if (req.files?.image?.length) {
-      payload["ourStory.images"] = req.files.image.map((f) => f.path);
+      payload.ourStory.images = req.files.image.map(
+        (f) => `/uploads/${f.filename}`
+      );
     }
 
     if (req.files?.missionImage?.[0]) {
-      payload["mission.image"] = req.files.missionImage[0].path;
+      payload.mission.image = `/uploads/${req.files.missionImage[0].filename}`;
     }
 
     if (req.files?.visionImage?.[0]) {
-      payload["vision.image"] = req.files.visionImage[0].path;
+      payload.vision.image = `/uploads/${req.files.visionImage[0].filename}`;
     }
 
-    /* ===== UPDATE IF EXISTS ===== */
-    if (existingAboutUs) {
-      const updated = await AboutUs.findByIdAndUpdate(
-        existingAboutUs._id,
-        { $set: payload },
-        { new: true }
-      );
-
-      return res.status(200).json({
-        success: true,
-        alreadyExists: true,
-        message: "About Us updated successfully",
-        data: updated,
-      });
-    }
-
-    /* ===== CREATE ===== */
-    const aboutUs = new AboutUs(payload);
-    await aboutUs.save();
+    const aboutUs = await AboutUs.create(payload);
 
     res.status(201).json({
       success: true,
-      alreadyExists: false,
       message: "About Us created successfully",
       data: aboutUs,
     });
@@ -100,8 +81,12 @@ exports.getAllAboutUs = async (req, res) => {
 exports.getAboutUsById = async (req, res) => {
   try {
     const data = await AboutUs.findById(req.params.id);
-    if (!data) return res.status(404).json({ message: "Not found" });
-
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        message: "About Us not found",
+      });
+    }
     res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -111,65 +96,56 @@ exports.getAboutUsById = async (req, res) => {
 /* ================= UPDATE ================= */
 exports.updateAboutUs = async (req, res) => {
   try {
-    const {
-      title,
-      shortPara,
-      description,
-      graduates,
-      trainers,
-      years,
-      rate,
-      missiontitle,
-      missiondescription,
-      missiontags,
-      visiontitle,
-      visiondescription,
-      visiontags,
-    } = req.body;
-
-    const updatePayload = {
-      title,
-      shortPara,
-
-      numbers: { graduates, trainers, years, rate },
-
-      "ourStory.description": description,
-
-      "mission.title": missiontitle,
-      "mission.description": missiondescription,
-      "mission.tags": missiontags ? JSON.parse(missiontags) : [],
-
-      "vision.title": visiontitle,
-      "vision.description": visiondescription,
-      "vision.tags": visiontags ? JSON.parse(visiontags) : [],
+    const payload = {
+      title: req.body.title,
+      shortPara: req.body.shortPara,
+      numbers: {
+        graduates: req.body.graduates,
+        trainers: req.body.trainers,
+        years: req.body.years,
+        rate: req.body.rate,
+      },
+      ourStory: { description: req.body.description },
+      mission: {
+        title: req.body.missiontitle,
+        description: req.body.missiondescription,
+        tags: req.body.missiontags ? JSON.parse(req.body.missiontags) : [],
+      },
+      vision: {
+        title: req.body.visiontitle,
+        description: req.body.visiondescription,
+        tags: req.body.visiontags ? JSON.parse(req.body.visiontags) : [],
+      },
     };
 
     if (req.files?.mainImage?.[0]) {
-      updatePayload.mainImage = req.files.mainImage[0].path;
+      payload.mainImage = `/uploads/${req.files.mainImage[0].filename}`;
     }
 
     if (req.files?.image?.length) {
-      updatePayload["ourStory.images"] = req.files.image.map((f) => f.path);
+      payload.ourStory.images = req.files.image.map(
+        (f) => `/uploads/${f.filename}`
+      );
     }
 
     if (req.files?.missionImage?.[0]) {
-      updatePayload["mission.image"] = req.files.missionImage[0].path;
+      payload.mission.image = `/uploads/${req.files.missionImage[0].filename}`;
     }
 
     if (req.files?.visionImage?.[0]) {
-      updatePayload["vision.image"] = req.files.visionImage[0].path;
+      payload.vision.image = `/uploads/${req.files.visionImage[0].filename}`;
     }
 
-    const updatedData = await AboutUs.findByIdAndUpdate(
+    const updated = await AboutUs.findByIdAndUpdate(
       req.params.id,
-      { $set: updatePayload },
+      payload,
       { new: true }
     );
 
     res.json({
       success: true,
-      message: "AboutUs updated successfully",
-      data: updatedData,
+      message: "About Us updated successfully",
+      data: updated,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -180,7 +156,7 @@ exports.updateAboutUs = async (req, res) => {
 exports.deleteAboutUs = async (req, res) => {
   try {
     await AboutUs.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: "AboutUs deleted successfully" });
+    res.json({ success: true, message: "About Us deleted successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

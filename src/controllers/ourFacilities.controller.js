@@ -1,4 +1,6 @@
 const OurFacility = require("../models/OurFacilities.model");
+const fs = require("fs");
+const path = require("path");
 
 /* ================= CREATE ================= */
 exports.createFacility = async (req, res) => {
@@ -7,7 +9,6 @@ exports.createFacility = async (req, res) => {
 
     // 🔴 LIMIT CHECK (MAX 3)
     const count = await OurFacility.countDocuments();
-
     if (count >= 3) {
       return res.status(400).json({
         success: false,
@@ -23,9 +24,12 @@ exports.createFacility = async (req, res) => {
       });
     }
 
+    // ✅ Save relative path only
+    const imagePath = `/uploads/${req.file.filename}`;
+
     const facility = await OurFacility.create({
       title,
-      image: req.file.path,
+      image: imagePath,
     });
 
     res.status(201).json({
@@ -63,9 +67,7 @@ exports.getAllFacilities = async (req, res) => {
 /* ================= GET ONE ================= */
 exports.getFacilityById = async (req, res) => {
   try {
-    const facility = await OurFacility.findById(
-      req.params.id
-    );
+    const facility = await OurFacility.findById(req.params.id);
 
     if (!facility) {
       return res.status(404).json({
@@ -91,19 +93,7 @@ exports.updateFacility = async (req, res) => {
   try {
     const { title } = req.body;
 
-    const updateData = { title };
-
-    // image optional
-    if (req.file) {
-      updateData.image = req.file.path;
-    }
-
-    const facility =
-      await OurFacility.findByIdAndUpdate(
-        req.params.id,
-        updateData,
-        { new: true }
-      );
+    const facility = await OurFacility.findById(req.params.id);
 
     if (!facility) {
       return res.status(404).json({
@@ -112,10 +102,36 @@ exports.updateFacility = async (req, res) => {
       });
     }
 
+    const updateData = { title };
+
+    // ✅ If new image uploaded → delete old image
+    if (req.file) {
+      if (facility.image) {
+        const oldFilename = path.basename(facility.image);
+        const oldFilePath = path.join(
+          __dirname,
+          "../../uploads",
+          oldFilename
+        );
+
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      }
+
+      updateData.image = `/uploads/${req.file.filename}`;
+    }
+
+    const updatedFacility = await OurFacility.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+
     res.status(200).json({
       success: true,
       message: "Facility updated successfully",
-      data: facility,
+      data: updatedFacility,
     });
   } catch (error) {
     res.status(500).json({
@@ -128,10 +144,7 @@ exports.updateFacility = async (req, res) => {
 /* ================= DELETE ================= */
 exports.deleteFacility = async (req, res) => {
   try {
-    const facility =
-      await OurFacility.findByIdAndDelete(
-        req.params.id
-      );
+    const facility = await OurFacility.findById(req.params.id);
 
     if (!facility) {
       return res.status(404).json({
@@ -139,6 +152,18 @@ exports.deleteFacility = async (req, res) => {
         message: "Facility not found",
       });
     }
+
+    // ✅ Delete image from uploads folder
+    if (facility.image) {
+      const filename = path.basename(facility.image);
+      const filePath = path.join(__dirname, "../../uploads", filename);
+
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    await facility.deleteOne();
 
     res.status(200).json({
       success: true,

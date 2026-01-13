@@ -1,23 +1,8 @@
 const AboutBanner = require("../models/AboutBanner.model");
 const fs = require("fs");
+const path = require("path");
 
-/* ================= GET ================= */
-exports.getBanner = async (req, res) => {
-  try {
-    const banner = await AboutBanner.findOne();
-    res.json({
-      success: true,
-      data: banner,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch About banner",
-    });
-  }
-};
-
-/* ================= CREATE / UPDATE ================= */
+/* ================= CREATE ================= */
 exports.createBanner = async (req, res) => {
   try {
     if (!req.file) {
@@ -27,28 +12,58 @@ exports.createBanner = async (req, res) => {
       });
     }
 
-    // check existing banner
-    const existingBanner = await AboutBanner.findOne();
+    // ✅ Save only relative URL
+    const newImagePath = `/uploads/${req.file.filename}`;
 
-    // delete old image if exists
-    if (existingBanner && fs.existsSync(existingBanner.image)) {
-      fs.unlinkSync(existingBanner.image);
-      await AboutBanner.deleteOne({ _id: existingBanner._id });
+    // ✅ Only one banner allowed
+    const existing = await AboutBanner.findOne();
+
+    if (existing) {
+      // ✅ Delete old image safely
+      if (existing.image) {
+        const oldFilename = path.basename(existing.image);
+        const oldFilePath = path.join(__dirname, "../../uploads", oldFilename);
+
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      }
+
+      // ✅ Remove old banner record
+      await AboutBanner.deleteMany();
     }
 
+    // ✅ Create new banner
     const banner = await AboutBanner.create({
-      image: req.file.path,
+      image: newImagePath,
     });
 
     res.status(201).json({
       success: true,
-      message: "About banner saved successfully",
+      message: "About banner created successfully",
       data: banner,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Failed to save banner",
+      message: "Server error",
+    });
+  }
+};
+
+/* ================= GET ================= */
+exports.getBanner = async (req, res) => {
+  try {
+    const banner = await AboutBanner.findOne().sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: banner,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch About banner",
     });
   }
 };
@@ -65,8 +80,14 @@ exports.deleteBanner = async (req, res) => {
       });
     }
 
-    if (fs.existsSync(banner.image)) {
-      fs.unlinkSync(banner.image);
+    // ✅ Delete image safely
+    if (banner.image) {
+      const oldFilename = path.basename(banner.image);
+      const oldFilePath = path.join(__dirname, "../../uploads", oldFilename);
+
+      if (fs.existsSync(oldFilePath)) {
+        fs.unlinkSync(oldFilePath);
+      }
     }
 
     await banner.deleteOne();

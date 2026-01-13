@@ -1,4 +1,18 @@
 const Gallery = require("../models/Gallery");
+const fs = require("fs");
+const path = require("path");
+
+/* ================= HELPER ================= */
+const deleteImage = (imgPath) => {
+  if (!imgPath) return;
+
+  const filename = path.basename(imgPath);
+  const filePath = path.join(__dirname, "../../uploads", filename);
+
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+};
 
 /* ================= CREATE ================= */
 exports.createGallery = async (req, res) => {
@@ -6,14 +20,23 @@ exports.createGallery = async (req, res) => {
     const { title, description } = req.body;
 
     if (!title || !description) {
-      return res.status(400).json({ message: "All fields required" });
+      return res.status(400).json({
+        success: false,
+        message: "All fields required",
+      });
     }
 
     if (!req.files || req.files.length !== 9) {
-      return res.status(400).json({ message: "Upload exactly 9 images" });
+      return res.status(400).json({
+        success: false,
+        message: "Upload exactly 9 images",
+      });
     }
 
-    const images = req.files.map((file) => file.path);
+    // ✅ SAVE RELATIVE PATHS
+    const images = req.files.map(
+      (file) => `/uploads/${file.filename}`
+    );
 
     const gallery = await Gallery.create({
       title,
@@ -23,11 +46,14 @@ exports.createGallery = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Gallery created",
+      message: "Gallery created successfully",
       data: gallery,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 };
 
@@ -35,9 +61,16 @@ exports.createGallery = async (req, res) => {
 exports.getAllGalleries = async (req, res) => {
   try {
     const galleries = await Gallery.find().sort({ createdAt: -1 });
-    res.json({ success: true, data: galleries });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+
+    res.json({
+      success: true,
+      data: galleries,
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch galleries",
+    });
   }
 };
 
@@ -47,21 +80,30 @@ exports.getSingleGallery = async (req, res) => {
     const gallery = await Gallery.findById(req.params.id);
 
     if (!gallery) {
-      return res.status(404).json({ message: "Gallery not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Gallery not found",
+      });
     }
 
-    res.json({ success: true, data: gallery });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.json({
+      success: true,
+      data: gallery,
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Invalid gallery ID",
+    });
   }
 };
 
 /* ================= UPDATE ================= */
 exports.updateGallery = async (req, res) => {
   try {
-    const { title, description } = req.body;
-    const gallery = await Gallery.findById(req.params.id);
+    const { title, description, imageIndexes } = req.body;
 
+    const gallery = await Gallery.findById(req.params.id);
     if (!gallery) {
       return res.status(404).json({
         success: false,
@@ -69,29 +111,37 @@ exports.updateGallery = async (req, res) => {
       });
     }
 
+    // update text fields
+    gallery.title = title ?? gallery.title;
+    gallery.description = description ?? gallery.description;
+
     let images = [...gallery.images];
 
     if (req.files && req.files.length > 0) {
-      const indexes = req.body.imageIndexes;
+      const indexes = Array.isArray(imageIndexes)
+        ? imageIndexes
+        : [imageIndexes];
 
       req.files.forEach((file, i) => {
-        const index = Array.isArray(indexes)
-          ? Number(indexes[i])
-          : Number(indexes);
+        const index = Number(indexes[i]);
 
-        images[index] = file.path;
+        if (index >= 0 && index < images.length) {
+          // ✅ delete old image
+          deleteImage(images[index]);
+
+          // ✅ replace with new image
+          images[index] = `/uploads/${file.filename}`;
+        }
       });
     }
 
-    gallery.title = title;
-    gallery.description = description;
     gallery.images = images;
-
     await gallery.save();
 
-    res.status(200).json({
+    res.json({
       success: true,
       message: "Gallery updated successfully",
+      data: gallery,
     });
   } catch (error) {
     console.error(error);
@@ -108,16 +158,25 @@ exports.deleteGallery = async (req, res) => {
     const gallery = await Gallery.findById(req.params.id);
 
     if (!gallery) {
-      return res.status(404).json({ message: "Gallery not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Gallery not found",
+      });
     }
+
+    // ✅ delete all images
+    gallery.images.forEach(deleteImage);
 
     await gallery.deleteOne();
 
     res.json({
       success: true,
-      message: "Gallery deleted",
+      message: "Gallery deleted successfully",
     });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Delete failed",
+    });
   }
 };

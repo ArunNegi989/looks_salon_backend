@@ -27,7 +27,7 @@ exports.createOurValue = async (req, res) => {
       title,
       icon,
       description,
-      image: req.file.path,
+      image: `/uploads/${req.file.filename}`, // ✅ FIX
     });
 
     res.status(201).json({
@@ -38,11 +38,10 @@ exports.createOurValue = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Server error",
+      message: error.message,
     });
   }
 };
-
 
 /* ================= GET ALL ================= */
 exports.getAllOurValues = async (req, res) => {
@@ -56,7 +55,7 @@ exports.getAllOurValues = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Failed to fetch Our Values",
+      message: error.message,
     });
   }
 };
@@ -80,7 +79,7 @@ exports.getOurValueById = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Server error",
+      message: error.message,
     });
   }
 };
@@ -93,7 +92,7 @@ exports.updateOurValue = async (req, res) => {
     const updateData = { title, icon, description };
 
     if (req.file) {
-      updateData.image = req.file.path;
+      updateData.image = `/uploads/${req.file.filename}`; // ✅ FIX
     }
 
     const value = await OurValue.findByIdAndUpdate(
@@ -117,7 +116,7 @@ exports.updateOurValue = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Server error",
+      message: error.message,
     });
   }
 };
@@ -141,7 +140,7 @@ exports.deleteOurValue = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Server error",
+      message: error.message,
     });
   }
 };

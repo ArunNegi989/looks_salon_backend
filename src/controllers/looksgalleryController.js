@@ -1,6 +1,8 @@
 const Looksgallery = require("../models/Looksgallery");
+const fs = require("fs");
+const path = require("path");
 
-// CREATE
+/* ================= CREATE ================= */
 exports.createGallery = async (req, res) => {
   try {
     const { title, category } = req.body;
@@ -12,10 +14,12 @@ exports.createGallery = async (req, res) => {
       });
     }
 
+    const imagePath = `/uploads/${req.file.filename}`;
+
     const gallery = await Looksgallery.create({
       title,
       category,
-      image: req.file.path,
+      image: imagePath,
     });
 
     res.status(201).json({
@@ -31,7 +35,7 @@ exports.createGallery = async (req, res) => {
   }
 };
 
-// GET ALL
+/* ================= GET ALL ================= */
 exports.getAllGallery = async (req, res) => {
   try {
     const galleries = await Looksgallery.find().sort({ createdAt: -1 });
@@ -48,8 +52,7 @@ exports.getAllGallery = async (req, res) => {
   }
 };
 
-
-// UPDATE
+/* ================= UPDATE ================= */
 exports.updateGallery = async (req, res) => {
   try {
     const { id } = req.params;
@@ -64,13 +67,22 @@ exports.updateGallery = async (req, res) => {
       });
     }
 
-    // Update fields
     if (title) gallery.title = title;
     if (category) gallery.category = category;
 
-    // If new image uploaded
+    // if new image uploaded
     if (req.file) {
-      gallery.image = req.file.path;
+      // delete old image
+      if (gallery.image) {
+        const oldFilename = path.basename(gallery.image);
+        const oldFilePath = path.join(__dirname, "../../uploads", oldFilename);
+
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      }
+
+      gallery.image = `/uploads/${req.file.filename}`;
     }
 
     await gallery.save();
@@ -88,9 +100,7 @@ exports.updateGallery = async (req, res) => {
   }
 };
 
-
-
-// DELETE
+/* ================= DELETE ================= */
 exports.deleteGallery = async (req, res) => {
   try {
     const { id } = req.params;
@@ -104,7 +114,16 @@ exports.deleteGallery = async (req, res) => {
       });
     }
 
-    await Looksgallery.findByIdAndDelete(id);
+    if (gallery.image) {
+      const filename = path.basename(gallery.image);
+      const filePath = path.join(__dirname, "../../uploads", filename);
+
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    await gallery.deleteOne();
 
     res.status(200).json({
       success: true,

@@ -1,17 +1,28 @@
 const Blog = require("../models/Blog");
+const fs = require("fs");
+const path = require("path");
 
-
+/* ================= CREATE BLOG ================= */
 exports.createBlog = async (req, res) => {
   try {
     const { title, shortPara, content1, content2 } = req.body;
 
     if (!title || !shortPara) {
-      return res.status(400).json({ message: "Title & shortPara are required" });
+      return res.status(400).json({
+        success: false,
+        message: "Title & shortPara are required",
+      });
     }
 
-    const mainImage = req.files?.mainImage?.[0]?.filename || null;
+    // ✅ FIXED PATH
+    const mainImage = req.files?.mainImage?.[0]
+      ? `/uploads/${req.files.mainImage[0].filename}`
+      : null;
+
     const gallery = req.files?.gallery
-      ? req.files.gallery.map((file) => file.filename)
+      ? req.files.gallery.map(
+          (file) => `/uploads/${file.filename}`
+        )
       : [];
 
     const blog = await Blog.create({
@@ -23,39 +34,38 @@ exports.createBlog = async (req, res) => {
       content2,
     });
 
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
       message: "Blog created successfully",
       data: blog,
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: "Failed to create blog",
-      error: error.message,
     });
   }
 };
 
+/* ================= GET ALL BLOGS ================= */
 exports.getAllBlogs = async (req, res) => {
   try {
     const blogs = await Blog.find().sort({ createdAt: -1 });
 
-    return res.status(200).json({
+    res.json({
       success: true,
       count: blogs.length,
       data: blogs,
     });
-  } catch (error) {
-    return res.status(500).json({
+  } catch {
+    res.status(500).json({
       success: false,
       message: "Failed to fetch blogs",
-      error: error.message,
     });
   }
 };
 
-
+/* ================= GET BLOG BY ID ================= */
 exports.getBlogById = async (req, res) => {
   try {
     const blog = await Blog.findById(req.params.id);
@@ -67,19 +77,19 @@ exports.getBlogById = async (req, res) => {
       });
     }
 
-    return res.status(200).json({
+    res.json({
       success: true,
       data: blog,
     });
-  } catch (error) {
-    return res.status(500).json({
+  } catch {
+    res.status(500).json({
       success: false,
       message: "Invalid blog ID",
-      error: error.message,
     });
   }
 };
 
+/* ================= UPDATE BLOG ================= */
 exports.updateBlog = async (req, res) => {
   try {
     const blog = await Blog.findById(req.params.id);
@@ -94,11 +104,13 @@ exports.updateBlog = async (req, res) => {
     const { title, shortPara, content1, content2 } = req.body;
 
     if (req.files?.mainImage?.[0]) {
-      blog.mainImage = req.files.mainImage[0].filename;
+      blog.mainImage = `/uploads/${req.files.mainImage[0].filename}`;
     }
 
     if (req.files?.gallery) {
-      blog.gallery = req.files.gallery.map((file) => file.filename);
+      blog.gallery = req.files.gallery.map(
+        (file) => `/uploads/${file.filename}`
+      );
     }
 
     blog.title = title ?? blog.title;
@@ -108,21 +120,20 @@ exports.updateBlog = async (req, res) => {
 
     await blog.save();
 
-    return res.status(200).json({
+    res.json({
       success: true,
       message: "Blog updated successfully",
       data: blog,
     });
-  } catch (error) {
-    return res.status(500).json({
+  } catch {
+    res.status(500).json({
       success: false,
       message: "Failed to update blog",
-      error: error.message,
     });
   }
 };
 
-
+/* ================= DELETE BLOG ================= */
 exports.deleteBlog = async (req, res) => {
   try {
     const blog = await Blog.findById(req.params.id);
@@ -136,15 +147,14 @@ exports.deleteBlog = async (req, res) => {
 
     await blog.deleteOne();
 
-    return res.status(200).json({
+    res.json({
       success: true,
       message: "Blog deleted successfully",
     });
-  } catch (error) {
-    return res.status(500).json({
+  } catch {
+    res.status(500).json({
       success: false,
       message: "Failed to delete blog",
-      error: error.message,
     });
   }
 };

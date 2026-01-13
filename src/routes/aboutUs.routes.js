@@ -17,7 +17,6 @@ router.post(
 
 /* ================= READ ================= */
 router.get("/getAllAboutUs", controller.getAllAboutUs);
-
 router.get("/getAboutUsById/:id", controller.getAboutUsById);
 
 /* ================= UPDATE ================= */

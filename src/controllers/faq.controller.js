@@ -1,14 +1,25 @@
 const Faq = require("../models/Faq.model");
+const mongoose = require("mongoose");
 
 /* ================= CREATE FAQ ================= */
 exports.createFaq = async (req, res) => {
   try {
-    const { question, answer } = req.body;
+    const question = req.body.question?.trim();
+    const answer = req.body.answer?.trim();
 
     if (!question || !answer) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required",
+        message: "Question and answer are required",
+      });
+    }
+
+    // Optional: prevent duplicate FAQ
+    const exists = await Faq.findOne({ question });
+    if (exists) {
+      return res.status(400).json({
+        success: false,
+        message: "FAQ already exists",
       });
     }
 
@@ -47,7 +58,16 @@ exports.getAllFaqs = async (req, res) => {
 /* ================= GET SINGLE FAQ ================= */
 exports.getFaqById = async (req, res) => {
   try {
-    const faq = await Faq.findById(req.params.id);
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid FAQ ID",
+      });
+    }
+
+    const faq = await Faq.findById(id);
 
     if (!faq) {
       return res.status(404).json({
@@ -71,13 +91,31 @@ exports.getFaqById = async (req, res) => {
 /* ================= UPDATE FAQ ================= */
 exports.updateFaq = async (req, res) => {
   try {
+    const { id } = req.params;
     const { question, answer } = req.body;
 
-    const faq = await Faq.findByIdAndUpdate(
-      req.params.id,
-      { question, answer },
-      { new: true }
-    );
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid FAQ ID",
+      });
+    }
+
+    const updateData = {};
+
+    if (question?.trim()) updateData.question = question.trim();
+    if (answer?.trim()) updateData.answer = answer.trim();
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Nothing to update",
+      });
+    }
+
+    const faq = await Faq.findByIdAndUpdate(id, updateData, {
+      new: true,
+    });
 
     if (!faq) {
       return res.status(404).json({
@@ -102,7 +140,16 @@ exports.updateFaq = async (req, res) => {
 /* ================= DELETE FAQ ================= */
 exports.deleteFaq = async (req, res) => {
   try {
-    const faq = await Faq.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid FAQ ID",
+      });
+    }
+
+    const faq = await Faq.findByIdAndDelete(id);
 
     if (!faq) {
       return res.status(404).json({

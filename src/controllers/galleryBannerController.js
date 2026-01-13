@@ -1,4 +1,6 @@
 const GalleryBanner = require("../models/GalleryBanner");
+const fs = require("fs");
+const path = require("path");
 
 /* ================= CREATE ================= */
 exports.createBanner = async (req, res) => {
@@ -6,17 +8,36 @@ exports.createBanner = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: "Image required",
+        message: "Image is required",
       });
     }
 
+    const newImagePath = `/uploads/${req.file.filename}`;
+
+    // ✅ Only one banner allowed
+    const existing = await GalleryBanner.findOne();
+
+    if (existing) {
+      if (existing.image) {
+        const oldFilename = path.basename(existing.image);
+        const oldFilePath = path.join(__dirname, "../../uploads", oldFilename);
+
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      }
+
+      await GalleryBanner.deleteMany();
+    }
+
     const banner = await GalleryBanner.create({
-      image: req.file.path,
+      image: newImagePath,
     });
 
     res.status(201).json({
       success: true,
       data: banner,
+      message: "Gallery banner created",
     });
   } catch (error) {
     res.status(500).json({
@@ -47,8 +68,8 @@ exports.getBanner = async (req, res) => {
 exports.updateBanner = async (req, res) => {
   try {
     const { id } = req.params;
-
     const banner = await GalleryBanner.findById(id);
+
     if (!banner) {
       return res.status(404).json({
         success: false,
@@ -57,7 +78,17 @@ exports.updateBanner = async (req, res) => {
     }
 
     if (req.file) {
-      banner.image = req.file.path;
+      // ✅ delete old image
+      if (banner.image) {
+        const oldFilename = path.basename(banner.image);
+        const oldFilePath = path.join(__dirname, "../../uploads", oldFilename);
+
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      }
+
+      banner.image = `/uploads/${req.file.filename}`;
     }
 
     await banner.save();
@@ -65,6 +96,7 @@ exports.updateBanner = async (req, res) => {
     res.json({
       success: true,
       data: banner,
+      message: "Gallery banner updated",
     });
   } catch {
     res.status(500).json({
@@ -77,9 +109,8 @@ exports.updateBanner = async (req, res) => {
 /* ================= DELETE ================= */
 exports.deleteBanner = async (req, res) => {
   try {
-    const { id } = req.params;
+    const banner = await GalleryBanner.findById(req.params.id);
 
-    const banner = await GalleryBanner.findById(id);
     if (!banner) {
       return res.status(404).json({
         success: false,
@@ -87,11 +118,20 @@ exports.deleteBanner = async (req, res) => {
       });
     }
 
-    await GalleryBanner.findByIdAndDelete(id);
+    if (banner.image) {
+      const oldFilename = path.basename(banner.image);
+      const oldFilePath = path.join(__dirname, "../../uploads", oldFilename);
+
+      if (fs.existsSync(oldFilePath)) {
+        fs.unlinkSync(oldFilePath);
+      }
+    }
+
+    await banner.deleteOne();
 
     res.json({
       success: true,
-      message: "Banner deleted successfully",
+      message: "Gallery banner deleted successfully",
     });
   } catch {
     res.status(500).json({

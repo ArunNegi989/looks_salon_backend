@@ -14,12 +14,12 @@ exports.addBrand = async (req, res) => {
       });
     }
 
-    const brand = new Brand({
-      title,
-      image: req.file.path,
-    });
+    const imagePath = `/uploads/${req.file.filename}`;
 
-    await brand.save();
+    const brand = await Brand.create({
+      title,
+      image: imagePath,
+    });
 
     res.status(201).json({
       success: true,
@@ -65,25 +65,21 @@ exports.deleteBrand = async (req, res) => {
 
     // ✅ Safe image delete
     if (brand.image) {
-      const imagePath = path.join(
-        process.cwd(),
-        brand.image.replace(/\\/g, "/")
-      );
+      const filename = path.basename(brand.image);
+      const filePath = path.join(__dirname, "../../uploads", filename);
 
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
       }
     }
 
-    await Brand.findByIdAndDelete(req.params.id);
+    await brand.deleteOne();
 
     res.json({
       success: true,
       message: "Brand deleted successfully",
     });
   } catch (error) {
-    console.error("Delete Brand Error:", error);
-
     res.status(500).json({
       success: false,
       message: "Failed to delete brand",
@@ -91,27 +87,41 @@ exports.deleteBrand = async (req, res) => {
   }
 };
 
-
 /* ================= UPDATE BRAND ================= */
 exports.updateBrand = async (req, res) => {
   try {
     const brand = await Brand.findById(req.params.id);
-    if (!brand) throw new Error();
+
+    if (!brand) {
+      return res.status(404).json({
+        success: false,
+        message: "Brand not found",
+      });
+    }
 
     if (req.body.title) {
       brand.title = req.body.title;
     }
 
     if (req.file) {
-      fs.unlinkSync(path.join(__dirname, "..", brand.image));
-      brand.image = req.file.path;
+      // ✅ delete old image safely
+      if (brand.image) {
+        const oldFilename = path.basename(brand.image);
+        const oldFilePath = path.join(__dirname, "../../uploads", oldFilename);
+
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      }
+
+      brand.image = `/uploads/${req.file.filename}`;
     }
 
     await brand.save();
 
     res.json({
       success: true,
-      message: "Brand updated",
+      message: "Brand updated successfully",
       data: brand,
     });
   } catch {
